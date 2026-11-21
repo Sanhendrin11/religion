@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kuis Gamifikasi v3: Ekaristi — Sumber & Puncak</title>
+<style>
+  :root{
+    --bg1:#1a0033; --bg2:#0d1b4c; --gold:#ffd166; --gold2:#f9c74f;
+    --card:rgba(255,255,255,0.08); --card2:rgba(255,255,255,0.14);
+    --green:#06d6a0; --red:#ef476f; --blue:#4cc9f0; --purple:#b388ff;
+    --text:#f5f5ff; --shadow:0 10px 30px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    min-height:100vh; color:var(--text);
+    background:radial-gradient(circle at 20% 10%, #2a0a5e 0%, transparent 45%),
+               radial-gradient(circle at 85% 90%, #0a2a5e 0%, transparent 45%),
+               linear-gradient(135deg,var(--bg1),var(--bg2));
+    background-attachment:fixed;
+    display:flex; flex-direction:column; align-items:center;
+    padding:18px; overflow-x:hidden;
+  }
+  .stars{position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden;}
+  .star{position:absolute; width:3px; height:3px; background:#fff; border-radius:50%; opacity:.6; animation:twinkle 3s infinite;}
+  @keyframes twinkle{0%,100%{opacity:.15; transform:scale(.7);}50%{opacity:.9; transform:scale(1.2);}}
+
+  .app{position:relative; z-index:2; width:100%; max-width:900px;}
+
+  header{text-align:center; margin-bottom:14px;}
+  .badge{display:inline-block; background:linear-gradient(90deg,var(--gold),var(--gold2)); color:#1a0033;
+    font-weight:800; letter-spacing:1px; font-size:.72rem; padding:5px 14px; border-radius:999px; text-transform:uppercase;}
+  h1{font-size:clamp(1.4rem,4.5vw,2.2rem); margin:10px 0 4px;
+     background:linear-gradient(90deg,#fff,var(--gold),#fff); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .subtitle{font-size:.85rem; opacity:.75;}
+
+  /* TOMBOL MODERATOR */
+  .mod-btn{position:fixed; top:14px; right:14px; z-index:80; width:42px; height:42px; border-radius:50%;
+    border:1.5px solid rgba(255,255,255,.3); background:rgba(0,0,0,.4); color:var(--gold);
+    font-size:1.2rem; cursor:pointer; backdrop-filter:blur(6px); transition:.2s;}
+  .mod-btn:hover{transform:rotate(45deg); border-color:var(--gold);}
+
+  .scoreboard{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:16px 0 10px;}
+  .team-card{background:var(--card); border:1px solid rgba(255,255,255,.12); border-radius:14px;
+    padding:10px 16px; min-width:120px; text-align:center; backdrop-filter:blur(8px); transition:.3s;}
+  .team-card.active{border-color:var(--gold); box-shadow:0 0 18px rgba(255,209,102,.5); transform:translateY(-3px);}
+  .team-card .tname{font-weight:700; font-size:.85rem;}
+  .team-card .tscore{font-size:1.4rem; font-weight:900; color:var(--gold);}
+
+  .progress-wrap{display:flex; gap:6px; margin:14px 0 18px;}
+  .seg{flex:1; height:8px; border-radius:999px; background:rgba(255,255,255,.12); overflow:hidden; position:relative;}
+  .seg::after{content:''; position:absolute; inset:0; width:0; background:linear-gradient(90deg,var(--gold),var(--gold2)); transition:.4s;}
+  .seg.done::after{width:100%;}
+  .seg.current::after{width:50%; animation:pulseBar 1.5s infinite;}
+  @keyframes pulseBar{0%,100%{opacity:.6;}50%{opacity:1;}}
+
+  .card{background:var(--card); border:1px solid rgba(255,255,255,.12); border-radius:20px;
+    padding:22px; backdrop-filter:blur(10px); box-shadow:var(--shadow); animation:fadeUp .45s ease;}
+  @keyframes fadeUp{from{opacity:0; transform:translateY(16px);}to{opacity:1; transform:translateY(0);}}
+
+  .round-tag{display:inline-block; font-size:.7rem; font-weight:800; letter-spacing:1.5px; text-transform:uppercase;
+    padding:4px 12px; border-radius:999px; margin-bottom:12px;}
+  .r1{background:rgba(76,201,240,.2); color:var(--blue);}
+  .r2{background:rgba(239,71,111,.2); color:var(--red);}
+  .r3{background:rgba(179,136,255,.2); color:var(--purple);}
+  .r4{background:rgba(6,214,160,.2); color:var(--green);}
+
+  .qtext{font-size:clamp(1rem,2.6vw,1.25rem); font-weight:600; line-height:1.55; margin-bottom:18px;}
+  .qnum{font-size:.78rem; opacity:.65; margin-bottom:8px; letter-spacing:1px;}
+
+  .options{display:grid; gap:10px;}
+  .opt{display:flex; align-items:center; gap:12px; text-align:left; padding:13px 16px; cursor:pointer;
+    background:var(--card2); border:1.5px solid rgba(255,255,255,.12); border-radius:14px; color:var(--text);
+    font-size:.95rem; transition:.2s; font-family:inherit;}
+  .opt:hover:not(:disabled){border-color:var(--gold); transform:translateX(4px); background:rgba(255,209,102,.1);}
+  .opt:disabled{cursor:default;}
+  .opt .key{flex:0 0 30px; height:30px; border-radius:8px; background:rgba(255,255,255,.12);
+    display:grid; place-items:center; font-weight:800; font-size:.85rem;}
+  .opt.correct{border-color:var(--green); background:rgba(6,214,160,.2); box-shadow:0 0 16px rgba(6,214,160,.4);}
+  .opt.correct .key{background:var(--green); color:#002b20;}
+  .opt.wrong{border-color:var(--red); background:rgba(239,71,111,.18);}
+  .opt.wrong .key{background:var(--red); color:#fff;}
+
+  .feedback{margin-top:16px; padding:14px 16px; border-radius:14px; font-size:.9rem; line-height:1.6;
+    display:none; border-left:4px solid var(--gold); background:rgba(255,209,102,.1); animation:fadeUp .3s;}
+  .feedback.show{display:block;}
+  .feedback b{color:var(--gold);}
+
+  .btn{display:inline-flex; align-items:center; gap:8px; padding:13px 26px; border:none; border-radius:999px;
+    font-weight:800; font-size:.95rem; cursor:pointer; font-family:inherit; transition:.2s;
+    background:linear-gradient(90deg,var(--gold),var(--gold2)); color:#1a0033; box-shadow:0 6px 20px rgba(255,209,102,.35);}
+  .btn:hover{transform:translateY(-2px) scale(1.03); box-shadow:0 10px 26px rgba(255,209,102,.5);}
+  .btn.ghost{background:transparent; border:1.5px solid rgba(255,255,255,.3); color:var(--text); box-shadow:none;}
+  .btn.ghost:hover{border-color:var(--gold); color:var(--gold);}
+  .btn.danger{background:linear-gradient(90deg,#ef476f,#ff6b95); color:#fff;}
+  .btn.small{padding:9px 16px; font-size:.8rem;}
+  .actions{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:18px; flex-wrap:wrap;}
+
+  .timer{display:none; align-items:center; gap:8px; font-weight:800; font-size:.95rem; color:var(--gold);}
+  .timer.show{display:flex;}
+  .timer.warn{color:var(--red); animation:pulseT .6s infinite;}
+  @keyframes pulseT{0%,100%{transform:scale(1);}50%{transform:scale(1.12);}}
+
+  .team-pick{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;}
+  .tp{flex:1; min-width:90px; padding:9px; border-radius:10px; background:var(--card2); border:1.5px solid transparent;
+    cursor:pointer; font-weight:700; font-size:.82rem; color:var(--text); font-family:inherit; transition:.2s;}
+  .tp.sel{border-color:var(--gold); background:rgba(255,209,102,.2);}
+
+  .answer-input{width:100%; min-height:110px; padding:14px; border-radius:14px; border:1.5px solid rgba(255,255,255,.2);
+    background:rgba(0,0,0,.25); color:var(--text); font-family:inherit; font-size:.92rem; resize:vertical;}
+  .answer-input:focus{outline:none; border-color:var(--gold);}
+  .manual-grade{display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;}
+  .manual-grade .btn{padding:10px 18px; font-size:.85rem;}
+
+  .start{text-align:center;}
+  .start h2{font-size:clamp(1.3rem,4vw,1.9rem); margin-bottom:10px; color:var(--gold);}
+  .rules{text-align:left; max-width:560px; margin:18px auto; background:rgba(0,0,0,.22); border-radius:14px; padding:18px 20px;}
+  .rules li{margin:7px 0; font-size:.9rem; line-height:1.5; padding-left:4px;}
+  .rules li::marker{color:var(--gold);}
+
+  .winner{text-align:center; position:relative; overflow:hidden;}
+  .trophy{font-size:4rem; animation:bounce 1.2s infinite; display:inline-block;}
+  @keyframes bounce{0%,100%{transform:translateY(0) rotate(-4deg);}50%{transform:translateY(-14px) rotate(4deg);}}
+  .rank-list{margin-top:18px; display:flex; flex-direction:column; gap:8px;}
+  .rank-row{display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-radius:12px;
+    background:var(--card2); font-weight:700;}
+  .rank-row.first{background:linear-gradient(90deg,rgba(255,209,102,.25),rgba(255,209,102,.05)); border:1px solid var(--gold);}
+
+  /* STATISTIK */
+  .stats-section{margin-top:22px; text-align:left;}
+  .stats-section h3{font-size:1rem; color:var(--gold); margin-bottom:12px; letter-spacing:1px;}
+  .stat-team{background:rgba(0,0,0,.2); border-radius:12px; padding:12px 14px; margin-bottom:10px;}
+  .stat-team .st-head{display:flex; justify-content:space-between; font-weight:800; margin-bottom:8px;}
+  .stat-bars{display:flex; flex-direction:column; gap:6px;}
+  .stat-row{display:flex; align-items:center; gap:8px; font-size:.78rem;}
+  .stat-label{flex:0 0 80px; opacity:.8;}
+  .stat-bar{flex:1; height:14px; background:rgba(255,255,255,.1); border-radius:999px; overflow:hidden; position:relative;}
+  .stat-fill{height:100%; border-radius:999px; transition:width .8s;}
+  .stat-fill.benar{background:linear-gradient(90deg,#06d6a0,#4cc9f0);}
+  .stat-fill.salah{background:linear-gradient(90deg,#ef476f,#ff6b95);}
+  .stat-val{flex:0 0 50px; text-align:right; font-weight:700;}
+
+  /* PANEL MODERATOR */
+  .mod-overlay{position:fixed; inset:0; background:rgba(0,0,0,.8); z-index:100; display:none;
+    align-items:center; justify-content:center; padding:16px; overflow-y:auto;}
+  .mod-overlay.show{display:flex; animation:fadeUp .3s;}
+  .mod-panel{background:linear-gradient(135deg,#1e0a3c,#0d1b4c); border:1.5px solid var(--gold);
+    border-radius:18px; padding:20px; max-width:560px; width:100%; max-height:90vh; overflow-y:auto; position:relative;}
+  .mod-panel h2{color:var(--gold); margin-bottom:6px; font-size:1.15rem;}
+  .mod-panel p.hint{font-size:.78rem; opacity:.7; margin-bottom:16px;}
+  .mod-close{position:absolute; top:12px; right:12px; background:transparent; border:none; color:var(--text);
+    font-size:1.4rem; cursor:pointer; opacity:.6;}
+  .mod-close:hover{opacity:1; color:var(--red);}
+  .mod-team{background:rgba(255,255,255,.06); border-radius:12px; padding:12px; margin-bottom:10px;}
+  .mod-team .mt-name{font-weight:800; margin-bottom:8px; font-size:.9rem;}
+  .mod-controls{display:flex; gap:6px; flex-wrap:wrap; align-items:center;}
+  .mod-controls input{width:60px; padding:6px 8px; border-radius:8px; border:1px solid rgba(255,255,255,.2);
+    background:rgba(0,0,0,.3); color:var(--text); font-family:inherit; text-align:center;}
+  .mod-controls .btn{padding:7px 12px; font-size:.75rem;}
+  .mod-divider{height:1px; background:rgba(255,255,255,.1); margin:16px 0;}
+  .log-item{font-size:.75rem; padding:6px 10px; background:rgba(255,255,255,.04); border-radius:8px;
+    margin-bottom:4px; display:flex; justify-content:space-between; gap:8px;}
+  .log-item .lg-delta{font-weight:800;}
+  .log-item .lg-delta.pos{color:var(--green);} .log-item .lg-delta.neg{color:var(--red);}
+
+  /* KONFETI */
+  .confetti{position:fixed; width:10px; height:14px; top:-20px; z-index:99; pointer-events:none; animation:fall linear forwards;}
+  @keyframes fall{to{transform:translateY(110vh) rotate(720deg); opacity:0;}}
+
+  /* REBUTAN */
+  .buzz-overlay{position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:50; display:none;
+    flex-direction:column; align-items:center; justify-content:center; padding:20px;}
+  .buzz-overlay.show{display:flex; animation:fadeUp .3s;}
+  .buzz-title{font-size:clamp(1.2rem,4vw,1.8rem); color:var(--gold); margin-bottom:16px; font-weight:800; text-align:center;}
+  .buzz-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:14px; width:100%; max-width:520px;}
+  .buzz-btn{padding:24px; border-radius:18px; border:none; font-weight:900; font-size:1rem; cursor:pointer;
+    font-family:inherit; color:#1a0033; background:linear-gradient(90deg,var(--gold),var(--gold2)); transition:.15s;}
+  .buzz-btn:hover{transform:scale(1.05);}
+  .buzz-btn:active{transform:scale(.95); background:var(--green);}
+  .buzz-cancel{margin-top:18px;}
+
+  .hidden{display:none !important;}
+  @media(max-width:520px){ .opt{font-size:.85rem; padding:11px 12px;} .card{padding:16px;} .buzz-grid{grid-template-columns:1fr;} }
+  @media print{
+    body{background:#fff; color:#000; padding:0;}
+    .stars,.scoreboard,.progress-wrap,#quizCard,.start,#resultScreen .btn,.mod-btn{display:none !important;}
+    #printSheet{display:block !important;}
+  }
+  #printSheet{display:none; padding:20px; color:#000;}
+  #printSheet h2{margin:12px 0;}
+  #printSheet .pq{margin:10px 0; padding:8px; border-bottom:1px dashed #999;}
+</style>
+</head>
+<body>
+<div class="stars" id="stars"></div>
+<button class="mod-btn" id="modBtn" title="Panel Moderator (M)">⚙️</button>
+
+<div class="app">
+  <header>
+    <span class="badge">🎮 Kuis Gamifikasi Katolik • v3</span>
+    <h1 id="mainTitle">Ekaristi: Sumber &amp; Puncak</h1>
+    <p class="subtitle" id="subTitle">Kelas 8–9 SMP • 4 Babak • ±60 menit</p>
+  </header>
+
+  <!-- START -->
+  <section class="card start" id="startScreen">
+    <h2>⚔️ Siap Bertanding?</h2>
+    <p style="opacity:.85; font-size:.92rem;">Bentuk tim, pilih nama, dan rebut gelar <b style="color:var(--gold)">Juara Meja Perjamuan!</b></p>
+    <div class="rules">
+      <b style="color:var(--gold)">📜 Aturan Main</b>
+      <ul>
+        <li><b>3–4 tim.</b> Poin tiap babak: Pemanasan 10, Jebakan 20, Kasus 30, Pamungkas 50.</li>
+        <li>Jawaban benar = poin. Salah di Babak Jebakan = <b style="color:var(--red)">−10 poin</b>.</li>
+        <li>Waktu: <b>15 detik</b> (B1), <b>30 detik</b> (B2–B3), <b>3 menit</b> (B4).</li>
+        <li><b>Mode Rebutan</b> di Babak 2 & 4 — tim tercepat menekan tombol = hak jawab.</li>
+        <li>Guru dapat membuka <b>⚙️ Panel Moderator</b> untuk koreksi poin manual & undo.</li>
+        <li>Poin tertinggi = 🏆 <b>Juara Meja Perjamuan</b>.</li>
+      </ul>
+    </div>
+    <div style="margin:16px 0 8px; font-weight:700; font-size:.9rem;">Jumlah Tim:</div>
+    <div class="team-pick" id="teamCountPick">
+      <button class="tp" data-n="3">3 Tim</button>
+      <button class="tp sel" data-n="4">4 Tim</button>
+    </div>
+    <div style="margin:14px 0 6px; font-weight:700; font-size:.9rem;">Pengaturan:</div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center; font-size:.85rem;">
+      <label><input type="checkbox" id="soundToggle" checked> 🔊 Efek suara</label>
+      <label><input type="checkbox" id="buzzToggle" checked> ⚡ Mode rebutan</label>
+    </div>
+    <div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap; justify-content:center;">
+      <button class="btn" id="startBtn">🚀 Mulai Kuis!</button>
+      <button class="btn ghost" id="resumeBtn" style="display:none;">💾 Lanjutkan Sesi</button>
+      <button class="btn ghost" id="printBtn">🖨️ Cetak Soal</button>
+    </div>
+  </section>
+
+  <div class="scoreboard hidden" id="scoreboard"></div>
+  <div class="progress-wrap hidden" id="progressWrap">
+    <div class="seg" data-r="0"></div><div class="seg" data-r="1"></div>
+    <div class="seg" data-r="2"></div><div class="seg" data-r="3"></div>
+  </div>
+
+  <!-- QUIZ -->
+  <section class="card hidden" id="quizCard">
+    <div id="roundTag" class="round-tag r1">Babak 1</div>
+    <div class="qnum" id="qNum">Soal 1 / 20</div>
+    <div class="qtext" id="qText">—</div>
+    <div class="team-pick" id="teamPicker"></div>
+    <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:10px;">
+      <div id="timer" class="timer">⏱ <span id="timerVal">15</span>s</div>
+      <button class="btn ghost small" id="pauseBtn" style="display:none;">⏸ Pause</button>
+    </div>
+    <div class="options" id="options"></div>
+    <div id="openAnswer" class="hidden">
+      <textarea class="answer-input" id="answerInput" placeholder="Tulis jawaban tim di sini..."></textarea>
+      <div class="manual-grade">
+        <button class="btn ghost" data-score="0">❌ Salah (0)</button>
+        <button class="btn ghost" data-score="25">➗ Sebagian (25)</button>
+        <button class="btn" data-score="50">✅ Benar (50)</button>
+      </div>
+    </div>
+    <div class="feedback" id="feedback"></div>
+    <div class="actions">
+      <button class="btn ghost" id="skipBtn">Lewati ⏭</button>
+      <button class="btn" id="nextBtn" style="display:none;">Lanjut ➡</button>
+    </div>
+  </section>
+
+  <!-- RESULT -->
+  <section class="card hidden winner" id="resultScreen">
+    <div class="trophy">🏆</div>
+    <h2 style="color:var(--gold); margin:8px 0;">Juara Meja Perjamuan!</h2>
+    <p id="winnerName" style="font-size:1.3rem; font-weight:800; margin-bottom:6px;">—</p>
+    <p style="opacity:.8; font-size:.9rem;">Iman yang dirayakan dalam Ekaristi dihidupi dalam kasih sehari-hari. 🙏</p>
+    <div class="rank-list" id="rankList"></div>
+
+    <div class="stats-section">
+      <h3>📊 STATISTIK PER TIM</h3>
+      <div id="statsContainer"></div>
+    </div>
+
+    <div class="stats-section">
+      <h3>🧾 RINGKASAN REFLEKSI (untuk Moderator)</h3>
+      <p id="reflectionText" style="font-size:.88rem; line-height:1.6; opacity:.9;"></p>
+    </div>
+
+    <div style="margin-top:22px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+      <button class="btn" id="restartBtn">🔄 Main Lagi</button>
+      <button class="btn ghost" id="exportBtn">📥 Ekspor CSV</button>
+    </div>
+  </section>
+</div>
+
+<!-- MODERATOR PANEL -->
+<div class="mod-overlay" id="modOverlay">
+  <div class="mod-panel">
+    <button class="mod-close" id="modClose">✕</button>
+    <h2>⚙️ Panel Moderator</h2>
+    <p class="hint">Koreksi poin tim, undo jawaban terakhir, atau reset skor.</p>
+    <div id="modTeams"></div>
+    <div class="mod-divider"></div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="btn ghost small" id="undoBtn">↩️ Undo Jawaban Terakhir</button>
+      <button class="btn danger small" id="resetAllBtn">🗑️ Reset Semua Skor</button>
+    </div>
+    <div class="mod-divider"></div>
+    <div style="font-weight:800; font-size:.8rem; margin-bottom:8px; color:var(--gold);">📜 LOG JAWABAN</div>
+    <div id="modLog" style="max-height:200px; overflow-y:auto;"></div>
+  </div>
+</div>
+
+<!-- REBUTAN -->
+<div class="buzz-overlay" id="buzzOverlay">
+  <div class="buzz-title">⚡ REBUTAN! Tim mana yang lebih dulu?</div>
+  <div class="buzz-grid" id="buzzGrid"></div>
+  <button class="btn ghost buzz-cancel" id="buzzCancel">Batal</button>
+</div>
+
+<div id="printSheet"></div>
+
+<script>
+/* ============================================================
+   CONFIG
+============================================================ */
+const CONFIG = {
+  title: "Ekaristi: Sumber & Puncak",
+  subtitle: "Kelas 8–9 SMP • 4 Babak • ±60 menit",
+  teams: ["Tim Alpha", "Tim Omega", "Tim Cahaya", "Tim Berkat"]
+};
+
+const QUESTIONS = [
+  { round:1, points:10, type:"mc", q:"Ekaristi pertama kali ditetapkan Yesus pada peristiwa...",
+    opts:["Kelahiran di Betlehem","Perjamuan Terakhir","Kebangkitan","Pentakosta"], correct:1,
+    exp:"Benar! Pada Perjamuan Terakhir Yesus berkata: <b>“Inilah Tubuh-Ku… inilah Darah-Ku.”</b>" },
+  { round:1, points:10, type:"mc", q:"Kata “Ekaristi” berasal dari bahasa Yunani <i>eucharistia</i> yang berarti...",
+    opts:["Pengorbanan","Syukur","Perjamuan","Pengampunan"], correct:1,
+    exp:"Tepat! <b>Eucharistia = ucapan syukur.</b>" },
+  { round:1, points:10, type:"mc", q:"Dalam Ekaristi, roti dan anggur berubah menjadi...",
+    opts:["Simbol tubuh dan darah Kristus","Tubuh dan Darah Kristus yang nyata","Roti biasa yang diberkati","Makanan rohani tanpa perubahan"], correct:1,
+    exp:"Betul! Gereja mengajarkan <b>transubstansiasi</b>." },
+  { round:1, points:10, type:"mc", q:"Sakramen Ekaristi termasuk dalam kelompok...",
+    opts:["Sakramen inisiasi","Sakramen penyembuhan","Sakramen pelayanan","Sakramen penguatan saja"], correct:0,
+    exp:"Benar! Ekaristi bersama <b>Baptis & Krisma</b> adalah sakramen inisiasi." },
+  { round:1, points:10, type:"mc", q:"Yang boleh menerima Komuni dalam ajaran Katolik adalah...",
+    opts:["Semua orang tanpa syarat","Hanya yang sudah baptis dan dalam keadaan rahmat","Hanya imam","Hanya yang sudah menikah"], correct:1,
+    exp:"Tepat! Syarat: sudah <b>baptis</b> dan dalam <b>keadaan rahmat</b>." },
+
+  { round:2, points:20, penalty:10, type:"mc",
+    q:"“Ekaristi hanya simbol atau lambang saja; roti dan anggur tidak benar-benar berubah.”",
+    opts:["Benar","Salah — Gereja mengajarkan transubstansiasi: substansi berubah menjadi Tubuh & Darah Kristus","Benar, tapi hanya saat misa","Tergantung imamnya"], correct:1,
+    exp:"<b>Miskonsepsi!</b> Ekaristi bukan lambang (KGK 1374–1376)." },
+  { round:2, points:20, penalty:10, type:"mc",
+    q:"“Umat Katolik wajib misa setiap hari Minggu; kalau tidak datang, pasti dosa berat.”",
+    opts:["Benar, tanpa kecuali","Salah — wajib pada hari Minggu & hari raya wajib; halangan berat membebaskan","Benar, tapi hanya saat Paskah","Tidak ada kewajiban sama sekali"], correct:1,
+    exp:"<b>Hampir tertipu!</b> Halangan berat membebaskan (KGK 2181)." },
+  { round:2, points:20, penalty:10, type:"mc",
+    q:"“Setelah misa, roti sisa bisa dibuang biasa karena sudah tidak sakral.”",
+    opts:["Benar","Salah — hosti sisa disimpan di tabernakel dan dihormati sebagai Tubuh Kristus","Benar, asal sudah didoakan","Tergantung kebiasaan paroki"], correct:1,
+    exp:"<b>Salah besar!</b> Hosti disimpan di <b>tabernakel</b> (KGK 1379)." },
+  { round:2, points:20, penalty:10, type:"mc",
+    q:"“Siapa saja boleh menerima Komuni, termasuk yang belum baptis, asal datang ke gereja.”",
+    opts:["Benar, gereja terbuka untuk semua","Salah — Komuni hanya untuk umat Katolik yang sudah baptis & dalam keadaan rahmat","Benar, asal sopan","Salah, hanya untuk imam"], correct:1,
+    exp:"<b>Miskonsepsi!</b> Gereja terbuka, tetapi Komuni hanya untuk yang baptis dan layak." },
+  { round:2, points:20, penalty:10, type:"mc",
+    q:"“Misa hanya rutinitas; yang penting kan berdoa sendiri di rumah.”",
+    opts:["Benar, doa pribadi lebih penting","Salah — Ekaristi adalah sumber dan puncak seluruh hidup Kristiani, bukan sekadar rutinitas","Benar, kalau tidak sempat","Tergantung mood"], correct:1,
+    exp:"<b>Tertipu lagi!</b> Ekaristi adalah <b>“sumber dan puncak”</b> (LG 11; KGK 1324)." },
+
+  { round:3, points:30, type:"mc",
+    q:"Rina ingin misa Minggu pagi, tetapi ibunya sakit dan butuh ditemani. Apa tindakan paling Kristiani?",
+    opts:["Pergi misa, tinggalkan ibu sendiri","Temani ibu — tidak berdosa karena halangan berat; bisa ikut misa online/doa keluarga","Tidak peduli keduanya","Pergi misa lalu marah pada ibu"], correct:1,
+    exp:"<b>Tepat!</b> Kasih pada keluarga adalah wujud iman." },
+  { round:3, points:30, type:"mc",
+    q:"Teman non-Katolik ikut ke gereja lalu maju saat Komuni. Sebagai teman Katolik, sebaiknya...",
+    opts:["Membiarkan saja, tidak sopan menegur","Dengan santun menjelaskan ajaran Komuni, dan mengajaknya berdoa bersama tanpa mempermalukan","Menertawakan di depan kelas","Memaksanya mundur dengan keras"], correct:1,
+    exp:"<b>Bagus!</b> Kasih + kebenaran (bdk. 1Ptr 3:15)." },
+  { round:3, points:30, type:"mc",
+    q:"Kamu melihat teman menyimpan hosti di kantong setelah Komuni untuk “dibawa pulang”.",
+    opts:["Diam saja, itu hak dia","Menegurnya dengan kasih, jelaskan makna Ekaristi, lalu lapor ke guru/pembina","Memarahi di depan umum","Ikut menyimpan juga"], correct:1,
+    exp:"<b>Bijak!</b> Tegur dengan kasih, libatkan pembina." },
+  { round:3, points:30, type:"mc",
+    q:"Kamu merasa Ekaristi membosankan karena tidak paham. Apa langkah terbaik?",
+    opts:["Berhenti ke gereja","Mencari pemahaman (katekese, bertanya guru/pastor), menyiapkan hati, berlatih berdoa aktif","Tidur selama misa","Main HP supaya tidak bosan"], correct:1,
+    exp:"<b>Langkah dewasa!</b> Memahami Ekaristi menumbuhkan iman." },
+
+  { round:4, points:50, type:"open",
+    q:"Jelaskan dengan bahasamu sendiri: mengapa Ekaristi disebut <b>“sumber dan puncak”</b> hidup Kristiani? Berikan 2 alasan.",
+    exp:"<b>Kunci:</b> (a) menghadirkan Kristus yang menyelamatkan; (b) dari Ekaristi umat dikuatkan untuk melayani, sehingga ibadah dan hidup sehari-hari terhubung." },
+  { round:4, points:50, type:"open",
+    q:"Apa perbedaan Ekaristi dengan sekadar “makan bersama” atau “perayaan simbolis”? Sebutkan minimal 2 hal.",
+    exp:"<b>Kunci:</b> (1) kehadiran nyata Kristus (transubstansiasi); (2) sifat kurban; (3) syarat penerimaan & makna sakramental." },
+  { round:4, points:50, type:"open",
+    q:"Bagaimana kamu bisa menghidupi makna Ekaristi di sekolah dan keluarga? Berikan 2 contoh konkret.",
+    exp:"<b>Kunci:</b> sikap syukur, berbagi, memaafkan, peduli teman, misa dengan khidmat, hidup jujur sebagai “tubuh Kristus”." },
+  { round:4, points:50, type:"open",
+    q:"<b>Bonus rebutan!</b> Sebutkan 3 nama lain untuk Sakramen Ekaristi dalam tradisi Gereja.",
+    exp:"<b>Kunci:</b> Komuni Suci, Perjamuan Kudus, Misa, Perjamuan Tuhan, Misteri Kudus." }
+];
+
+/* ============================================================
+   STATE
+============================================================ */
+const state = {
+  teamCount: 4, teams: [], current: 0, activeTeam: null, answered: false,
+  timerId: null, timeLeft: 0, paused: false,
+  soundOn: true, buzzOn: true, buzzMode: false, log: []
+};
+
+/* ============================================================
+   AUDIO
+============================================================ */
+let audioCtx = null;
+function ensureAudio(){ if(!audioCtx){ try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } }
+function beep(freq, dur=0.15, type="sine", vol=0.15){
+  if(!state.soundOn) return;
+  ensureAudio(); if(!audioCtx) return;
+  const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(vol, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime + dur);
+}
+const sfx = {
+  correct(){ beep(660,0.12); setTimeout(()=>beep(880,0.18),120); },
+  wrong(){ beep(220,0.25,"sawtooth"); setTimeout(()=>beep(160,0.3,"sawtooth"),160); },
+  tick(){ beep(880,0.05,"square",0.08); },
+  timeup(){ beep(300,0.2,"square"); setTimeout(()=>beep(200,0.4,"square"),200); },
+  fanfare(){ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,0.25,"triangle",0.18),i*160)); },
+  buzz(){ beep(1000,0.1,"square",0.2); }
+};
+
+/* ============================================================
+   ELEMEN
+============================================================ */
+const $ = id => document.getElementById(id);
+const startScreen=$("startScreen"), quizCard=$("quizCard"), resultScreen=$("resultScreen");
+const scoreboard=$("scoreboard"), progressWrap=$("progressWrap");
+const roundTag=$("roundTag"), qNum=$("qNum"), qText=$("qText");
+const optionsEl=$("options"), openAnswer=$("openAnswer"), answerInput=$("answerInput");
+const feedback=$("feedback"), timerEl=$("timer"), timerVal=$("timerVal");
+const nextBtn=$("nextBtn"), skipBtn=$("skipBtn"), teamPicker=$("teamPicker");
+const pauseBtn=$("pauseBtn"), buzzOverlay=$("buzzOverlay"), buzzGrid=$("buzzGrid");
+const modOverlay=$("modOverlay");
+
+/* ============================================================
+   BINTANG
+============================================================ */
+(function makeStars(){
+  const s=$("stars");
+  for(let i=0;i<70;i++){
+    const d=document.createElement("div"); d.className="star";
+    d.style.left=Math.random()*100+"%"; d.style.top=Math.random()*100+"%";
+    d.style.animationDelay=(Math.random()*3)+"s";
+    d.style.animationDuration=(2+Math.random()*3)+"s";
+    s.appendChild(d);
+  }
+})();
+
+/* ============================================================
+   START / RESUME
+============================================================ */
+$("mainTitle").textContent = CONFIG.title;
+$("subTitle").textContent = CONFIG.subtitle;
+
+document.querySelectorAll("#teamCountPick .tp").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    document.querySelectorAll("#teamCountPick .tp").forEach(b=>b.classList.remove("sel"));
+    btn.classList.add("sel");
+    state.teamCount = +btn.dataset.n;
+  });
+});
+
+const saved = localStorage.getItem("kuisEkaristiV3");
+if(saved){ $("resumeBtn").style.display = "inline-flex"; }
+
+$("startBtn").addEventListener("click", ()=>{
+  state.soundOn = $("soundToggle").checked;
+  state.buzzOn = $("buzzToggle").checked;
+  state.teams = CONFIG.teams.slice(0,state.teamCount).map(name=>({name, score:0}));
+  state.current = 0; state.log = [];
+  localStorage.removeItem("kuisEkaristiV3");
+  beginQuiz();
+});
+
+$("resumeBtn").addEventListener("click", ()=>{
+  try{
+    const data = JSON.parse(saved);
+    state.teams = data.teams; state.current = data.current; state.log = data.log || [];
+    state.teamCount = data.teams.length;
+    state.soundOn = $("soundToggle").checked; state.buzzOn = $("buzzToggle").checked;
+    beginQuiz();
+  }catch(e){ alert("Sesi tidak dapat dimuat."); }
+});
+
+function beginQuiz(){
+  startScreen.classList.add("hidden");
+  scoreboard.classList.remove("hidden");
+  progressWrap.classList.remove("hidden");
+  quizCard.classList.remove("hidden");
+  renderScoreboard();
+  renderQuestion();
+}
+
+$("restartBtn").addEventListener("click", ()=>{ localStorage.removeItem("kuisEkaristiV3"); location.reload(); });
+
+/* ============================================================
+   SCOREBOARD / PROGRESS
+============================================================ */
+function renderScoreboard(){
+  scoreboard.innerHTML = state.teams.map((t,i)=>`
+    <div class="team-card ${state.activeTeam===i?'active':''}">
+      <div class="tname">${t.name}</div>
+      <div class="tscore">${t.score}</div>
+    </div>`).join("");
+}
+function renderProgress(){
+  const roundNow = QUESTIONS[state.current] ? QUESTIONS[state.current].round : 4;
+  document.querySelectorAll(".seg").forEach((seg,i)=>{
+    seg.classList.remove("done","current");
+    if(i < roundNow-1) seg.classList.add("done");
+    else if(i === roundNow-1) seg.classList.add("current");
+  });
+}
+
+/* ============================================================
+   RENDER SOAL
+============================================================ */
+function renderQuestion(){
+  clearTimer();
+  const q = QUESTIONS[state.current];
+  if(!q){ showResult(); return; }
+
+  state.answered = false; state.activeTeam = null; state.buzzMode = false;
+  renderScoreboard(); renderProgress();
+
+  const tagMap = {1:["Babak 1 — Pemanasan","r1"],2:["Babak 2 — Jebakan Miskonsepsi","r2"],
+                  3:["Babak 3 — Analisis Kasus","r3"],4:["Babak 4 — Pamungkas","r4"]};
+  roundTag.textContent = tagMap[q.round][0];
+  roundTag.className = "round-tag " + tagMap[q.round][1];
+
+  qNum.textContent = `Soal ${state.current+1} / ${QUESTIONS.length} • ${q.points} poin`;
+  qText.innerHTML = q.q;
+
+  feedback.classList.remove("show"); feedback.innerHTML = "";
+  nextBtn.style.display = "none"; skipBtn.style.display = "inline-flex";
+  optionsEl.innerHTML = ""; openAnswer.classList.add("hidden");
+  optionsEl.classList.remove("hidden"); answerInput.value = "";
+  pauseBtn.style.display = "none";
+
+  teamPicker.innerHTML = state.teams.map((t,i)=>
+    `<button class="tp" data-team="${i}">${t.name}</button>`).join("");
+  teamPicker.querySelectorAll(".tp").forEach(b=>{
+    b.addEventListener("click",()=>{
+      if(state.answered) return;
+      state.activeTeam = +b.dataset.team;
+      teamPicker.querySelectorAll(".tp").forEach(x=>x.classList.remove("sel"));
+      b.classList.add("sel");
+      renderScoreboard();
+    });
+  });
+
+  if(q.type === "mc"){
+    const letters = ["A","B","C","D"];
+    q.opts.forEach((opt,i)=>{
+      const btn = document.createElement("button");
+      btn.className = "opt";
+      btn.innerHTML = `<span class="key">${letters[i]}</span><span>${opt}</span>`;
+      btn.dataset.idx = i;
+      btn.addEventListener("click", ()=> handleMC(i));
+      optionsEl.appendChild(btn);
+    });
+  } else {
+    optionsEl.classList.add("hidden"); openAnswer.classList.remove("hidden");
+    openAnswer.querySelectorAll("[data-score]").forEach(b=>{
+      b.onclick = ()=> handleOpen(+b.dataset.score);
+    });
+  }
+
+  if(state.buzzOn && (q.round === 2 || q.round === 4)){
+    startBuzz();
+  } else {
+    startTimer({1:15,2:30,3:30,4:180}[q.round] || 30);
+  }
+}
+
+/* ============================================================
+   REBUTAN
+============================================================ */
+function startBuzz(){
+  pauseBtn.style.display = "none"; timerEl.classList.remove("show");
+  buzzGrid.innerHTML = state.teams.map((t,i)=>
+    `<button class="buzz-btn" data-team="${i}">${t.name}</button>`).join("");
+  buzzGrid.querySelectorAll(".buzz-btn").forEach(b=>{
+    b.addEventListener("click", ()=>{
+      sfx.buzz();
+      state.activeTeam = +b.dataset.team;
+      state.buzzMode = true;
+      buzzOverlay.classList.remove("show");
+      teamPicker.querySelectorAll(".tp").forEach(x=>x.classList.remove("sel"));
+      const pick = teamPicker.querySelector(`[data-team="${state.activeTeam}"]`);
+      if(pick) pick.classList.add("sel");
+      renderScoreboard();
+      startTimer({1:15,2:30,3:30,4:180}[QUESTIONS[state.current].round] || 30);
+      optionsEl.querySelectorAll(".opt").forEach(b=>b.disabled = false);
+      if(QUESTIONS[state.current].type === "open") answerInput.focus();
+    });
+  });
+  buzzOverlay.classList.add("show");
+}
+$("buzzCancel").addEventListener("click", ()=>{
+  buzzOverlay.classList.remove("show"); state.buzzMode = false;
+  startTimer({1:15,2:30,3:30,4:180}[QUESTIONS[state.current].round] || 30);
+});
+
+/* ============================================================
+   JAWAB MC
+============================================================ */
+function handleMC(choice){
+  if(state.answered) return;
+  if(state.activeTeam === null){
+    feedback.classList.add("show");
+    feedback.innerHTML = "⚠️ <b>Pilih tim penjawab dulu</b> di atas sebelum menjawab!";
+    return;
+  }
+  state.answered = true; clearTimer(); skipBtn.style.display = "none";
+
+  const q = QUESTIONS[state.current];
+  const all = optionsEl.querySelectorAll(".opt");
+  all.forEach((b,i)=>{
+    b.disabled = true;
+    if(i === q.correct) b.classList.add("correct");
+    if(i === choice && choice !== q.correct) b.classList.add("wrong");
+  });
+
+  let delta = 0;
+  if(choice === q.correct){
+    delta = q.points; sfx.correct();
+    feedback.innerHTML = `✅ <b>BENAR!</b> +${q.points} poin untuk <b>${state.teams[state.activeTeam].name}</b>.<br>${q.exp}`;
+  } else if(q.penalty){
+    delta = -q.penalty; sfx.wrong();
+    feedback.innerHTML = `❌ <b>Salah — kena jebakan!</b> −${q.penalty} poin untuk <b>${state.teams[state.activeTeam].name}</b>.<br>${q.exp}`;
+  } else {
+    sfx.wrong();
+    feedback.innerHTML = `❌ <b>Belum tepat.</b> Jawaban benar: <b>${q.opts[q.correct]}</b>.<br>${q.exp}`;
+  }
+  state.teams[state.activeTeam].score += delta;
+  state.log.push({soal:state.current+1, tim:state.teams[state.activeTeam].name,
+    hasil: choice===q.correct?"benar":"salah", delta, round:q.round});
+  feedback.classList.add("show"); renderScoreboard();
+  nextBtn.style.display = "inline-flex"; saveProgress();
+}
+
+/* ============================================================
+   JAWAB TERBUKA
+============================================================ */
+function handleOpen(score){
+  if(state.answered) return;
+  if(state.activeTeam === null){
+    feedback.classList.add("show");
+    feedback.innerHTML = "⚠️ <b>Pilih tim penjawab dulu</b> di atas!";
+    return;
+  }
+  if(answerInput.value.trim() === ""){
+    feedback.classList.add("show");
+    feedback.innerHTML = "✍️ <b>Tulis jawaban tim</b> terlebih dahulu di kotak jawaban.";
+    return;
+  }
+  state.answered = true; clearTimer(); skipBtn.style.display = "none";
+
+  const q = QUESTIONS[state.current];
+  state.teams[state.activeTeam].score += score;
+  if(score === 50) sfx.correct(); else if(score === 0) sfx.wrong();
+
+  const status = score === 50 ? "✅ <b>SEMPURNA!</b>" : score === 25 ? "➗ <b>SEBAGIAN BENAR.</b>" : "❌ <b>BELUM TEPAT.</b>";
+  feedback.innerHTML = `${status} +${score} poin untuk <b>${state.teams[state.activeTeam].name}</b>.<br><br>📖 <b>Kunci jawaban:</b><br>${q.exp}`;
+  feedback.classList.add("show");
+  state.log.push({soal:state.current+1, tim:state.teams[state.activeTeam].name,
+    hasil:"terbuka", delta:score, round:q.round});
+  renderScoreboard(); nextBtn.style.display = "inline-flex"; saveProgress();
+}
+
+/* ============================================================
+   TIMER + PAUSE
+============================================================ */
+function startTimer(sec){
+  state.timeLeft = sec; state.paused = false;
+  timerVal.textContent = sec;
+  timerEl.classList.add("show"); timerEl.classList.remove("warn");
+  pauseBtn.style.display = "inline-flex"; pauseBtn.textContent = "⏸ Pause";
+  state.timerId = setInterval(()=>{
+    if(state.paused) return;
+    state.timeLeft--; timerVal.textContent = state.timeLeft;
+    if(state.timeLeft <= 5 && state.timeLeft > 0){ timerEl.classList.add("warn"); sfx.tick(); }
+    if(state.timeLeft <= 0){
+      clearTimer(); sfx.timeup();
+      if(!state.answered){
+        state.answered = true;
+        feedback.classList.add("show");
+        feedback.innerHTML = "⏰ <b>Waktu habis!</b> Tidak ada poin untuk soal ini. " +
+          (QUESTIONS[state.current].exp ? "<br>"+QUESTIONS[state.current].exp : "");
+        optionsEl.querySelectorAll(".opt").forEach(b=>{ b.disabled = true; });
+        skipBtn.style.display = "none"; nextBtn.style.display = "inline-flex";
+      }
+    }
+  },1000);
+}
+function clearTimer(){
+  if(state.timerId){ clearInterval(state.timerId); state.timerId=null; }
+  timerEl.classList.remove("show","warn"); pauseBtn.style.display = "none";
+}
+pauseBtn.addEventListener("click", ()=>{
+  state.paused = !state.paused;
+  pauseBtn.textContent = state.paused ? "▶ Resume" : "⏸ Pause";
+  timerEl.classList.toggle("warn", state.paused);
+});
+
+/* ============================================================
+   NAVIGASI
+============================================================ */
+nextBtn.addEventListener("click", ()=>{ state.current++; saveProgress(); renderQuestion(); });
+skipBtn.addEventListener("click", ()=>{ clearTimer(); state.current++; saveProgress(); renderQuestion(); });
+
+/* ============================================================
+   SIMPAN
+============================================================ */
+function saveProgress(){
+  try{
+    localStorage.setItem("kuisEkaristiV3", JSON.stringify({
+      teams: state.teams, current: state.current, log: state.log
+    }));
+  }catch(e){}
+}
+
+/* ============================================================
+   PANEL MODERATOR
+============================================================ */
+$("modBtn").addEventListener("click", openModPanel);
+document.addEventListener("keydown", (e)=>{
+  if(e.key === "m" || e.key === "M") openModPanel();
+});
+$("modClose").addEventListener("click", ()=> modOverlay.classList.remove("show"));
+modOverlay.addEventListener("click", (e)=>{ if(e.target === modOverlay) modOverlay.classList.remove("show"); });
+
+function openModPanel(){
+  if(state.teams.length === 0){ alert("Mulai kuis terlebih dahulu."); return; }
+  renderModPanel();
+  modOverlay.classList.add("show");
+}
+
+function renderModPanel(){
+  const cont = $("modTeams");
+  cont.innerHTML = state.teams.map((t,i)=>`
+    <div class="mod-team">
+      <div class="mt-name">${t.name} — <span style="color:var(--gold)">${t.score} poin</span></div>
+      <div class="mod-controls">
+        <input type="number" id="modInput${i}" value="10" min="1" max="100">
+        <button class="btn ghost small" data-add="${i}">+ Tambah</button>
+        <button class="btn ghost small" data-sub="${i}">− Kurang</button>
+        <button class="btn danger small" data-reset="${i}">Reset</button>
+      </div>
+    </div>`).join("");
+
+  cont.querySelectorAll("[data-add]").forEach(b=>{
+    b.onclick = ()=>{
+      const i = +b.dataset.add;
+      const val = +$(`modInput${i}`).value || 0;
+      state.teams[i].score += val;
+      renderScoreboard(); renderModPanel(); saveProgress();
+    };
+  });
+  cont.querySelectorAll("[data-sub]").forEach(b=>{
+    b.onclick = ()=>{
+      const i = +b.dataset.sub;
+      const val = +$(`modInput${i}`).value || 0;
+      state.teams[i].score -= val;
+      renderScoreboard(); renderModPanel(); saveProgress();
+    };
+  });
+  cont.querySelectorAll("[data-reset]").forEach(b=>{
+    b.onclick = ()=>{
+      const i = +b.dataset.reset;
+      if(confirm(`Reset skor ${state.teams[i].name}?`)){
+        state.teams[i].score = 0;
+        renderScoreboard(); renderModPanel(); saveProgress();
+      }
+    };
+  });
+
+  // Log
+  const logCont = $("modLog");
+  if(state.log.length === 0){
+    logCont.innerHTML = `<div style="opacity:.5; font-size:.75rem;">Belum ada jawaban tercatat.</div>`;
+  } else {
+    logCont.innerHTML = state.log.map((l,i)=>`
+      <div class="log-item">
+        <span>#${l.soal} • ${l.tim} • ${l.hasil}</span>
+        <span class="lg-delta ${l.delta>=0?'pos':'neg'}">${l.delta>=0?'+':''}${l.delta}</span>
+      </div>`).join("");
+  }
+}
+
+$("undoBtn").addEventListener("click", ()=>{
+  if(state.log.length === 0){ alert("Tidak ada jawaban untuk di-undo."); return; }
+  const last = state.log.pop();
+  const teamIdx = state.teams.findIndex(t=>t.name === last.tim);
+  if(teamIdx !== -1){
+    state.teams[teamIdx].score -= last.delta;
+  }
+  renderScoreboard(); renderModPanel(); saveProgress();
+  alert(`Undo berhasil: ${last.tim} dikembalikan ${last.delta} poin.`);
+});
+
+$("resetAllBtn").addEventListener("click", ()=>{
+  if(confirm("Reset SEMUA skor tim menjadi 0?")){
+    state.teams.forEach(t=> t.score = 0);
+    state.log = [];
+    renderScoreboard(); renderModPanel(); saveProgress();
+  }
+});
+
+/* ============================================================
+   HASIL AKHIR + STATISTIK + REFLEKSI
+============================================================ */
+function showResult(){
+  clearTimer();
+  quizCard.classList.add("hidden");
+  scoreboard.classList.add("hidden");
+  progressWrap.classList.add("hidden");
+  resultScreen.classList.remove("hidden");
+  sfx.fanfare(); launchConfetti();
+
+  const ranked = [...state.teams].sort((a,b)=>b.score-a.score);
+  $("winnerName").textContent = ranked[0].name + " — " + ranked[0].score + " poin";
+  $("rankList").innerHTML = ranked.map((t,i)=>`
+    <div class="rank-row ${i===0?'first':''}">
+      <span>${i===0?'🥇':i===1?'🥈':i===2?'🥉':'🎖️'} ${i+1}. ${t.name}</span>
+      <span>${t.score} poin</span>
+    </div>`).join("");
+
+  renderStats();
+  renderReflection();
+  localStorage.removeItem("kuisEkaristiV3");
+}
+
+/* STATISTIK PER TIM */
+function renderStats(){
+  const cont = $("statsContainer");
+  const rounds = [1,2,3,4];
+  const roundLabels = {1:"Pemanasan",2:"Jebakan",3:"Kasus",4:"Pamungkas"};
+  const totalByRound = {};
+  rounds.forEach(r=> totalByRound[r] = QUESTIONS.filter(q=>q.round===r).length);
+
+  cont.innerHTML = state.teams.map(t=>{
+    const rows = rounds.map(r=>{
+      const items = state.log.filter(l=> l.tim === t.name && l.round === r);
+      const benar = items.filter(l=> l.hasil === "benar" || (l.hasil === "terbuka" && l.delta === 50)).length;
+      const total = totalByRound[r] || 1;
+      const pct = Math.round((benar/total)*100);
+      return `
+        <div class="stat-row">
+          <span class="stat-label">${roundLabels[r]}</span>
+          <div class="stat-bar"><div class="stat-fill benar" style="width:${pct}%"></div></div>
+          <span class="stat-val">${benar}/${total}</span>
+        </div>`;
+    }).join("");
+    const totalBenar = state.log.filter(l=> l.tim === t.name && (l.hasil === "benar" || (l.hasil === "terbuka" && l.delta === 50))).length;
+    const akurasi = Math.round((totalBenar / QUESTIONS.length) * 100);
+    return `
+      <div class="stat-team">
+        <div class="st-head">
+          <span>${t.name}</span>
+          <span style="color:var(--gold)">${t.score} poin • ${akurasi}% akurasi</span>
+        </div>
+        <div class="stat-bars">${rows}</div>
+      </div>`;
+  }).join("");
+}
+
+/* RINGKASAN REFLEKSI */
+function renderReflection(){
+  const ranked = [...state.teams].sort((a,b)=>b.score-a.score);
+  const juara = ranked[0];
+  const totalSoal = QUESTIONS.length;
+  const totalBenar = state.log.filter(l=> l.hasil === "benar" || (l.hasil === "terbuka" && l.delta === 50)).length;
+  const jebakanBenar = state.log.filter(l=> l.round === 2 && l.hasil === "benar").length;
+  const jebakanSalah = state.log.filter(l=> l.round === 2 && l.hasil === "salah").length;
+
+  let teks = `Selamat kepada <b>${juara.name}</b> (${juara.score} poin) sebagai Juara Meja Perjamuan! `;
+  teks += `Dari ${totalSoal} soal, tercatat <b>${totalBenar} jawaban tepat</b> secara keseluruhan. `;
+
+  if(jebakanSalah > jebakanBenar){
+    teks += `Menarik: di <b>Babak Jebakan</b>, masih banyak yang terjebak miskonsepsi (${jebakanSalah} salah vs ${jebakanBenar} benar). Ini kesempatan baik untuk <b>mendalami ajaran Gereja</b> tentang Ekaristi — khususnya transubstansiasi, syarat Komuni, dan makna "sumber & puncak". `;
+  } else if(jebakanBenar > 0){
+    teks += `Hebat! Di <b>Babak Jebakan</b>, tim berhasil menghindari miskonsepsi (${jebakanBenar} benar). Ajaran Gereja tentang Ekaristi tampaknya sudah dipahami dengan baik. `;
+  }
+
+  teks += `<br><br><b>Refleksi bersama:</b> Ekaristi bukan sekadar hafalan, tetapi <b>perjumpaan nyata dengan Kristus</b>. Mari bertanya: bagian mana yang paling menantang? Mengapa? Dan bagaimana kita dapat menghidupi makna Ekaristi di rumah, sekolah, dan gereja mulai pekan ini? 🙏`;
+
+  $("reflectionText").innerHTML = teks;
+}
+
+/* ============================================================
+   KONFETI & EKSPOR
+============================================================ */
+function launchConfetti(){
+  const colors = ["#ffd166","#06d6a0","#4cc9f0","#ef476f","#b388ff","#ffffff"];
+  for(let i=0;i<80;i++){
+    const c = document.createElement("div"); c.className = "confetti";
+    c.style.left = Math.random()*100+"vw";
+    c.style.background = colors[Math.floor(Math.random()*colors.length)];
+    c.style.animationDuration = (2.5+Math.random()*2.5)+"s";
+    c.style.animationDelay = (Math.random()*1.5)+"s";
+    c.style.width = (6+Math.random()*8)+"px";
+    c.style.height = (10+Math.random()*10)+"px";
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(), 6000);
+  }
+}
+
+$("exportBtn").addEventListener("click", ()=>{
+  let csv = "Tim,Skor Akhir\n";
+  [...state.teams].sort((a,b)=>b.score-a.score).forEach(t=>{ csv += `"${t.name}",${t.score}\n`; });
+  csv += "\nSoal,Tim,Babak,Hasil,Delta\n";
+  state.log.forEach(l=>{ csv += `${l.soal},"${l.tim}",${l.round},${l.hasil},${l.delta}\n`; });
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = "hasil-kuis-ekaristi.csv"; a.click();
+  URL.revokeObjectURL(url);
+});
+
+/* ============================================================
+   CETAK
+============================================================ */
+$("printBtn").addEventListener("click", ()=>{
+  const sheet = $("printSheet");
+  const roundNames = {1:"BABAK 1 — PEMANASAN (10 poin)",2:"BABAK 2 — JEBAKAN MISKONSEPSI (20 poin, salah −10)",
+                      3:"BABAK 3 — ANALISIS KASUS (30 poin)",4:"BABAK 4 — PAMUNGKAS (50 poin)"};
+  let html = `<h1>${CONFIG.title}</h1><p>${CONFIG.subtitle}</p><hr>`;
+  let lastRound = 0;
+  QUESTIONS.forEach((q,i)=>{
+    if(q.round !== lastRound){ html += `<h2>${roundNames[q.round]}</h2>`; lastRound = q.round; }
+    html += `<div class="pq"><b>${i+1}.</b> ${q.q.replace(/<[^>]+>/g,'')}`;
+    if(q.type === "mc") html += "<ol type='A'>" + q.opts.map(o=>`<li>${o}</li>`).join("") + "</ol>";
+    else html += "<div style='height:80px; border:1px solid #ccc; border-radius:6px;'></div>";
+    html += "</div>";
+  });
+  html += "<hr><h2>KUNCI JAWABAN & PENJELASAN</h2>";
+  QUESTIONS.forEach((q,i)=>{
+    const ans = q.type === "mc" ? ["A","B","C","D"][q.correct] : q.exp.replace(/<[^>]+>/g,'');
+    html += `<div class="pq"><b>${i+1}.</b> ${ans}<br><i>${q.exp.replace(/<[^>]+>/g,'')}</i></div>`;
+  });
+  sheet.innerHTML = html; window.print();
+});
+
+/* ============================================================
+   KEYBOARD
+============================================================ */
+document.addEventListener("keydown", (e)=>{
+  if(!quizCard.classList.contains("hidden") && !modOverlay.classList.contains("show")){
+    if(e.key >= "1" && e.key <= "4"){
+      const idx = +e.key - 1;
+      const btn = optionsEl.querySelector(`[data-idx="${idx}"]`);
+      if(btn && !btn.disabled) btn.click();
+    }
+    if(e.key === "Enter" && nextBtn.style.display !== "none") nextBtn.click();
+    if(e.key === " "){ e.preventDefault(); pauseBtn.click(); }
+  }
+});
+
+renderScoreboard();
+</script>
+</body>
+</html>
